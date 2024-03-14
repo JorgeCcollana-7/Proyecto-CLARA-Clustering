@@ -1,0 +1,401 @@
+---
+title: Grupo 1 
+author: 
+
+- Presentado por
+- Cabanillas Atto, Jadira Milagre     (jadiracabanillas28@gmail.com)
+- Campuzano Galarza, Sofia Gabriela   (sofi.redblue@gmail.com)       
+- CCollana Orosco, Jorge Alberto      (jccollanaorosco@gmail.com)
+- Chucas Mera, Ana Lisset             (anitachucasmera@gmail.com)
+
+date: "3 de julio de 2022"
+output: 
+  rmdformats::downcute:
+  html_document:
+    toc: true
+    toc_depth: 5
+    toc_float:
+      collapsed: false
+      smooth_scroll: true 
+lang: es-Es
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F, message=F, warning=F)
+
+library(ggplot2)
+library(tidyverse)
+library(dplyr)
+library(DT)
+library(kableExtra)
+library(ggcorrplot)
+library(magrittr)
+library(DataExplorer)
+library(caret)
+library(funModeling) 
+library(cluster)
+library(factoextra)
+library(hopkins)
+library(clustertend)
+library(NbClust)
+```
+
+
+<center> <b> Departamento académico de Estadística e Informática - Mg. Jesús Salinas Flores </b></center>
+
+<center>
+
+
+
+![ ](https://haciaunalimaecologica.files.wordpress.com/2011/11/a31.gif){width=30%}
+</center>
+
+# <b>Caso de estudio</b>
+
+En la búsqueda de competividad, las empresas buscan brindar el mejor servicio a sus clientes y maximizar su ganancia. Es por ello que en el siguiente trabajo se analizará el comportamiento del cliente de una empresa de comestibles. Esto ayudará a la compañía a comprenderlos mejor y les facilitará la modificación de sus productos de acuerdo con las necesidades, comportamientos e inquietudes específicas de los diferentes tipos de clientes. La empresa podrá analizar qué segmento de clientes es más probable que compre tal producto y por qué medio, para luego comercializar tal producto en ese segmento en particular.
+
+# <b>Objetivos</b>
+
+- Predecir qué segmentos de clientes son los que más productos compran.
+- Predecir por qué medio realizan sus compras.
+
+# <b>Conjunto de datos</b>
+
+El archivo "marketing_campaign.csv" contiene datos recopilados de 2440 personas de una campaña de marketing, donde nuestra tarea es predecir cómo responderán los diferentes segmentos de clientes, de las cuales se registran los siguientes atributos:
+
+**Cliente**
+
+- ID: Identificador único del cliente.
+- Year_Birth: Año de nacimiento del cliente.
+- Education: Nivel de educación del cliente.
+- Marital_Status: Estado civil del cliente.
+- Income: Ingresos familiares anuales del cliente.
+- Kidhome: Número de niños en el hogar del cliente.
+- Teenhome: Número de adolescentes en el hogar del cliente.
+- Dt_Customer: Fecha de alta del cliente en la empresa.
+- Recency: Número de días desde la última compra del cliente.
+- Complain: 1 si el cliente se quejó en los últimos 2 años, 0 en caso contrario.
+
+**Productos**
+
+- MntWines: Cantidad gastada en vino en los últimos 2 años.
+- MntFruits: Cantidad gastada en frutas en los últimos 2 años.
+- MntMeatProducts: Cantidad gastada en carne en los últimos 2 años.
+- MntFishProducts: Cantidad gastada en pescado en los últimos 2 años.
+- MntSweetProducts: Cantidad gastada en dulces en los últimos 2 años.
+- MntGoldProds: Cantidad gastada en oro en los últimos 2 años.
+
+**Promoción**
+
+- NumDealsPurchases: Número de compras realizadas con descuento
+- AcceptedCmp1: 1 si el cliente aceptó la oferta en la 1.ª campaña, 0 en caso contrario.
+- AcceptedCmp2: 1 si el cliente aceptó la oferta en la 2ª campaña, 0 en caso contrario.
+- AcceptedCmp3: 1 si el cliente aceptó la oferta en la 3ra campaña, 0 en caso contrario.
+- AcceptedCmp4: 1 si el cliente aceptó la oferta en la 4ª campaña, 0 en caso contrario.
+- AcceptedCmp5: 1 si el cliente aceptó la oferta en la 5ª campaña, 0 en caso contrario.
+- Respuesta: 1 si el cliente aceptó la oferta en la última campaña, 0 en caso contrario.
+
+**Lugar**
+
+- NumWebPurchases: Número de compras realizadas a través de la web de la empresa.
+- NumCatalogPurchases: Número de compras realizadas utilizando un catálogo.
+- NumStorePurchases: Número de compras realizadas directamente en las tiendas.
+- NumWebVisitsMonth: Número de visitas al sitio web de la empresa en el último mes.
+
+<center>
+![ ](https://storage.googleapis.com/kaggle-datasets-images/1546318/2549419/519ae15c262818cdd94fa315325858aa/dataset-cover.png?t=2021-08-22-18-33-50.jpg){width=80%}
+</center>
+
+# <b>Pre-procesamiento de datos</b>
+
+## <b>Limpieza de datos<b>
+
+```{r, echo=TRUE}
+clientes1<-read.csv("marketing_campaign.csv",sep = "")
+
+str(clientes1)
+```
+
+Se observa que existen variables binarias y variables character. Por lo que se tendrán que eliminar, ya que el algoritmo solo trabaja con variables cuantitativas.
+
+```{r, echo=TRUE}
+clientes1$ID<-NULL
+clientes1$Year_Birth<-NULL
+clientes1$Education<-NULL
+clientes1$Marital_Status<-NULL
+clientes1$Dt_Customer<-NULL
+clientes1$AcceptedCmp3<-NULL
+clientes1$AcceptedCmp4<-NULL
+clientes1$AcceptedCmp5<-NULL
+clientes1$AcceptedCmp1<-NULL
+clientes1$AcceptedCmp2<-NULL
+clientes1$Z_CostContact<-NULL
+clientes1$Z_Revenue<-NULL
+clientes1$Response<-NULL
+clientes1$Complain<-NULL
+
+summary(clientes1)
+```
+
+Las variables de tipo character serán convertidas en variables númericas. 
+
+```{r, echo=TRUE}
+clientes1$Income<-as.integer(clientes1$Income)
+clientes1$Teenhome<-as.integer(clientes1$Teenhome)
+clientes1$Recency<-as.integer(clientes1$Recency)
+```
+
+Finalmente, con estas variables serán con las cuales trabajaremos.
+
+- Income: Ingresos familiares anuales del cliente.
+- Kidhome: Número de niños en el hogar del cliente.
+- Teenhome: Número de adolescentes en el hogar del cliente.
+- Recency: Número de días desde la última compra del cliente.
+- MntWines: Cantidad gastada en vino en los últimos 2 años.
+- MntFruits: Cantidad gastada en frutas en los últimos 2 años.
+- MntMeatProducts: Cantidad gastada en carne en los últimos 2 años.
+- MntFishProducts: Cantidad gastada en pescado en los últimos 2 años.
+- MntSweetProducts: Cantidad gastada en dulces en los últimos 2 años.
+- MntGoldProds: Cantidad gastada en oro en los últimos 2 años.
+- NumWebPurchases: Número de compras realizadas a través de la web de la empresa.
+- NumCatalogPurchases: Número de compras realizadas utilizando un catálogo.
+- NumStorePurchases: Número de compras realizadas directamente en las tiendas.
+- NumWebVisitsMonth: Número de visitas al sitio web de la empresa en el último mes.
+
+
+```{r, echo=TRUE}
+plot_str(clientes1)
+```
+
+## <b>Detección y eliminación de datos perdidos<b>
+
+```{r,echo=TRUE}
+plot_missing(clientes1, ggtheme = theme_bw())
+```
+```{r, echo=TRUE}
+colSums(is.na(clientes1))
+```
+
+## <b>Aplicando el método Caret por imputación de la mediana para los valores perdidos<b>
+
+```{r,echo=TRUE}
+RNGkind(sample.kind = "Rejection")
+
+pre.Proc <- preProcess(clientes1, method = "medianImpute")
+df_sin_na <- predict(pre.Proc, clientes1)
+options(width=80)
+summary(df_sin_na)
+```
+
+## <b>Descripción de los datos<b>
+
+```{r echo = T}
+my_dfstatus <- df_status(df_sin_na)
+```
+
+Se comprueba que ya no hay valores faltantes en nuestra data.
+
+## <b>Filtros en la columna Kidhome y TeenHome<b>
+
+```{r,echo=TRUE}
+data <- filter(df_sin_na, Kidhome<10 & Teenhome<10)
+```
+
+## <b>Analizar variables númericas usando gráficos<b>
+
+```{r echo = T}
+plot_num(data)
+```
+
+## <b>Detección de outliers<b>
+
+```{r echo = T}
+boxplot(data, col = rainbow(ncol(data)))
+```
+
+Se observa que la variable "Income" tiene outliers, por lo que se procede a eliminarlos.
+
+### <b>Boxplot de la variable "Income"<b>
+
+```{r,echo=TRUE}
+caja2 <- boxplot(data$Income, col="skyblue", frame.plot=F)
+```
+
+### <b>Eliminación de los outliers de la variable "Income"<b>
+
+```{r,echo=TRUE}
+data<-data[!(data$Income %in% caja2$out),]
+```
+
+```{r,echo=TRUE}
+boxplot(data, col = rainbow(ncol(data)))
+```
+
+Se observa que se ha logrado eliminar los outliers de la variable "Income".
+
+
+# <b>Clustering Clara<b> 
+
+## <b>Comprobar si es posible una agrupación en nuestros datos con el test estadístico de Hopkings<b>
+
+$H_{0}:$ Los datos siguen una distribución uniforme (no hay grupos significativos).
+
+$H_{1}:$ Los datos no siguen una distribución uniforme (sí hay grupos significativos).
+
+
+```{r echo = T}
+set.seed(123)
+data<- scale(data.frame(data))
+
+hopkins(data, n = ceiling(nrow(data)/10))
+```
+
+El estadístico de Hopkins tiene un valor de 0.0945, como este valor es menor a 0.5, entonces se rechaza la hipotesis nula. Por lo tanto, sí existe suficiente evidencia estadística para justificar el agrupamiento en nuestros datos.
+
+## <b>Pruebas para escoger el número de clústeres óptimos<b>
+
+### <b>Average silhouette method<b>
+
+```{r,echo=TRUE}
+fviz_nbclust(data, clara, method ="silhouette") + theme_classic()
+```
+
+Se observa que con el metodo "silhouette" la cantidad óptima de clústeres es 2.
+
+### <b>Elbow<b>
+
+```{r,echo=TRUE}
+
+fviz_nbclust(x = data, FUNcluster = clara, method = "wss", k.max = 10,
+             diss = dist(data, method = "manhattan"))
+```
+
+Se observa que la mejor elección estaría en escoger 3 clústeres, ya que la varianza total intra-clase comienza a estabilizarse a partir del tercer clúster.
+
+### <b>Función NbClust<b>
+
+```{r,echo=TRUE}
+
+res.nbclust <- NbClust(data, distance = "manhattan",
+                       min.nc = 2, max.nc = 5, 
+                       method = "average", index ="all")
+
+```
+
+De acuerdo a los índices, hay 8 que proponen que la mejor elección para el número de 
+clústeres es 2. Sin embargo, hay 7 índices que proponen que sean 4 clústeres y la información previa que se tiene sobre la data también indica que se pueden formar 4 clústeres. Además, a la empresa de comestibles le conviene que sean más tipos de clientes para poder dar un mejor servicio. **Es por ello que el clustering CLARA se realizará con 4 clústeres.**
+
+## <b>Algoritmo<b>
+
+```{r,echo=TRUE}
+set.seed(321)
+clara_clusters <- clara(x = data, k = 4, metric = "manhattan", stand = T,
+                        samples = 50, pamLike = TRUE)
+clara_clusters
+```
+
+La función clara() del paquete cluster permite aplicar el algoritmo CLARA. Entre sus argumentos destaca: Una matriz numérica x donde cada fila es una observación, el número de clústeres k, la medida de distancia empleada metric (euclídea o manhattan), si los datos se tienen que estandarizar stand, el número de partes samples en las que se divide el set de datos (recomendable 50) y si se utiliza el algoritmo PAM pamLike.
+
+
+### <b>Gráfico<b>
+
+```{r echo = T}
+fviz_cluster(object = clara_clusters, ellipse.type = "t", geom = "point",
+             pointsize = 2) +
+  theme_bw() +
+  labs(title = "Resultados clustering CLARA") +
+  theme(legend.position = "right")
+```
+
+## <b>Análisis<b> 
+
+### <b>Medoides para los 4 clústeres<b>
+
+Cliente representativo en cada clúster.
+
+```{r,echo=TRUE}
+clara_clusters$medoids
+```
+
+### <b>Vector de clustering<b>
+
+Vector que contiene el clúster al que pertenece cada cliente.
+
+```{r, echo=TRUE}
+head(clara_clusters$clustering,20)
+```
+
+## <b>Medias de cada variable en cada clúster<b>
+
+Esto nos podría dar una descripción sobre los clientes.
+
+```{r,echo=TRUE}
+aggregate(data, by=list(cluster=clara_clusters$cluster), mean)
+```
+
+
+# <b>Conclusiones</b>
+
+Los 4 perfiles de los clientes son los siguientes:
+
+## <b>Acerca del número de clúster: 1<b>
+
+- Tienen mayor ingreso anual.
+- Son los que menos niños y adolescentes tienen.
+- Son los que compran más productos.
+- Son los que menos han hecho compras con descuentos.
+- Suelen comprar por la página web.
+- Son los que más compran utilizando un catálogo.
+- Son los que más compran en tienda física.
+- Son los que menos visitan la página web.
+
+## <b>Acerca del número de clúster: 2<b>
+
+- Son los que perciben menor ingreso anual.
+- Son los que más niños tienen.
+- Son los que compran menos productos.
+- No suelen comprar con descuentos.
+- Son los que menos compran por la página web.
+- Son los que menos compran utilizando un catálogo.
+- Son los que menos compran en tienda física.
+- Son los que más visitan la página web.
+
+
+## <b>Acerca del número de clúster: 3<b>
+
+- Perciben un bajo ingreso anual.
+- No suelen tener niños, pero sí adolescentes.
+- Suelen comprar pocos productos.
+- Suelen comprar con descuentos.
+- No suelen comprar por la página web.
+- No suelen comprar utilizando un catálogo.
+- No suelen comprar en tienda física.
+- No visitan, usualmente, la página web.
+
+
+## <b>Acerca del número de clúster: 4<b>
+
+
+- Perciben un ingreso anual estable.
+- Son los que más adolescentes tienen.
+- Suelen comprar moderadamente.
+- Son los que más compran con descuentos.
+- Son los que más compran por la página web.
+- Suelen comprar utilizando un catálogo.
+- Son los que más compran en tienda física.
+- No visitan, usualmente, la página web.
+
+
+De esta manera, la empresa de comestibles brindará un mejor servicio y atenderá las inquietudes de los diferentes tipos de clientes. Además, podrá percibir mayores ingresos.
+
+
+# </b>Referencias bibliográficas</b>
+
+- Kapoor, K. (7 de octubre de 2021). *Customer Segmentation: Clustering*. Kaggle. <https://www.kaggle.com/code/karnikakapoor/customer-segmentation-clustering>
+
+- Kassambara, A. (2018). *CLARA in R : Clustering Large Applications*. Data Novia. <https://www.datanovia.com/en/lessons/clara-in-r-clustering-large-applications/>
+
+- Rodrigo, J. A. (2017). *Clustering y heatmaps: aprendizaje no supervisado*. Ciencia de datos. <https://www.cienciadedatos.net/documentos/37_clustering_y_heatmaps#K-medoids_clustering_(PAM)/>
+
+
+
